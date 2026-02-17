@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { ThreadSection } from "@/components/thread/thread-section";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
+import { GeneStatsPanel } from "@/components/gene/gene-stats-panel";
 import { ContinueReadingButton } from "@/components/thread/continue-reading-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -35,6 +36,10 @@ export default async function GeneThreadPage({ params }: GeneThreadPageProps) {
           {thread.subtitle}
         </p>
       </header>
+
+      <Separator />
+
+      <GeneStatsPanel gene={gene} compact />
 
       <Separator />
 

@@ -7,7 +7,7 @@ export default function ManifestoPage() {
       <BreadcrumbNav />
 
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Manifesto</h1>
+        <h1 className="text-3xl font-bold tracking-tight">About</h1>
         <p className="text-lg text-muted-foreground">
           What we believe about genetic information.
         </p>

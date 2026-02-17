@@ -16,7 +16,7 @@ const ROUTE_LABELS: Record<string, string> = {
   gene: "Gene",
   variant: "Variant",
   thread: "Thread",
-  manifesto: "Manifesto",
+  manifesto: "About",
 };
 
 export function BreadcrumbNav() {
