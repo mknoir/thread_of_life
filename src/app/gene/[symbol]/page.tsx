@@ -5,28 +5,8 @@ import { GeneSummaryCard } from "@/components/gene/gene-summary";
 import { EvidenceAccordion } from "@/components/gene/evidence-accordion";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { EpistemicAlert } from "@/components/shared/epistemic-alert";
-import { composeGeneSummary } from "@/lib/api/compose-gene";
+import { fetchGeneData } from "@/lib/api/fetch-gene";
 import type { GeneSummary } from "@/lib/types/gene";
-
-async function fetchGeneData(symbol: string): Promise<GeneSummary> {
-  const upperSymbol = symbol.trim().toUpperCase();
-  if (!upperSymbol) throw new Error("Invalid symbol");
-
-  try {
-    if (
-      process.env.DATABASE_URL &&
-      !process.env.DATABASE_URL.includes("user:password")
-    ) {
-      const { getCachedGeneSummary } = await import("@/lib/cache");
-      return getCachedGeneSummary(upperSymbol, () =>
-        composeGeneSummary(upperSymbol)
-      );
-    }
-    return composeGeneSummary(upperSymbol);
-  } catch {
-    throw new Error(`Failed to fetch gene ${upperSymbol}`);
-  }
-}
 
 interface GenePageProps {
   params: Promise<{ symbol: string }>;
@@ -34,6 +14,8 @@ interface GenePageProps {
 
 export default async function GenePage({ params }: GenePageProps) {
   const { symbol } = await params;
+  if (!symbol?.trim()) notFound();
+
   let gene: GeneSummary;
   try {
     gene = await fetchGeneData(symbol);

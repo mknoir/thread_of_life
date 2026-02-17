@@ -5,28 +5,8 @@ import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { ContinueReadingButton } from "@/components/thread/continue-reading-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { composeGeneSummary } from "@/lib/api/compose-gene";
+import { fetchGeneData } from "@/lib/api/fetch-gene";
 import { composeThreadFromGene } from "@/lib/thread/compose-thread-from-gene";
-
-async function fetchGeneData(symbol: string) {
-  const upperSymbol = symbol.trim().toUpperCase();
-  if (!upperSymbol) throw new Error("Invalid symbol");
-
-  try {
-    if (
-      process.env.DATABASE_URL &&
-      !process.env.DATABASE_URL.includes("user:password")
-    ) {
-      const { getCachedGeneSummary } = await import("@/lib/cache");
-      return getCachedGeneSummary(upperSymbol, () =>
-        composeGeneSummary(upperSymbol)
-      );
-    }
-    return composeGeneSummary(upperSymbol);
-  } catch {
-    throw new Error(`Failed to fetch gene ${upperSymbol}`);
-  }
-}
 
 interface GeneThreadPageProps {
   params: Promise<{ symbol: string }>;
@@ -34,6 +14,8 @@ interface GeneThreadPageProps {
 
 export default async function GeneThreadPage({ params }: GeneThreadPageProps) {
   const { symbol } = await params;
+  if (!symbol?.trim()) notFound();
+
   let gene;
   try {
     gene = await fetchGeneData(symbol);
