@@ -61,6 +61,17 @@ const JOURNEYS: JourneyCardProps[] = [
     imageCaption: "The evidence is always in the footnotes.",
     imageSrc: "/images/packs/evidence/book.webp",
   },
+  {
+    id: "create-your-own",
+    title: "Create your own thread",
+    hook: "Any gene. Your story.",
+    description:
+      "Enter a gene symbol and we'll compose a narrative thread from live data — ClinVar, gnomAD, ClinGen, and GTEx. Pull the thread on any gene.",
+    tags: ["create", "gene", "explore"],
+    imageCaption: "Every thread tells a story when you follow it far enough.",
+    imageSrc: "/images/packs/thread/spiderweb.webp",
+    href: "/?tab=explore",
+  },
 ];
 
 export function JourneyGrid() {

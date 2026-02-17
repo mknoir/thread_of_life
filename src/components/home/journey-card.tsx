@@ -20,6 +20,8 @@ export interface JourneyCardProps {
   tags: string[];
   imageCaption?: string;
   imageSrc?: string;
+  /** Override the default /thread/[id] link */
+  href?: string;
 }
 
 export function JourneyCard({
@@ -30,6 +32,7 @@ export function JourneyCard({
   tags,
   imageCaption,
   imageSrc,
+  href,
 }: JourneyCardProps) {
   return (
     <Card className="group flex flex-col overflow-hidden transition-shadow hover:shadow-md">
@@ -72,7 +75,7 @@ export function JourneyCard({
 
       <CardFooter>
         <Button asChild variant="default" size="sm" className="w-full">
-          <Link href={`/thread/${id}`}>
+          <Link href={href ?? `/thread/${id}`}>
             Pull the thread
             <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>

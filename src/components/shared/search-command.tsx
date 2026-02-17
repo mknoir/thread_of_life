@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import {
-  Dna,
   FlaskConical,
   Map,
   FileText,
+  BookOpen,
+  Sparkles,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -57,19 +58,34 @@ export function SearchCommand({ open, onOpenChange }: SearchCommandProps) {
         </CommandEmpty>
 
         <CommandGroup heading="Genes">
-          {SAMPLE_GENES.map((gene) => (
+          {SAMPLE_GENES.flatMap((gene) => [
             <CommandItem
-              key={gene.symbol}
-              value={`${gene.symbol} ${gene.name}`}
+              key={`${gene.symbol}-view`}
+              value={`${gene.symbol} ${gene.name} view gene`}
               onSelect={() =>
                 runCommand(() => router.push(`/gene/${gene.symbol}`))
               }
             >
-              <Dna className="mr-2 h-4 w-4 text-muted-foreground" />
+              <BookOpen className="mr-2 h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{gene.symbol}</span>
-              <span className="ml-2 text-muted-foreground">{gene.name}</span>
-            </CommandItem>
-          ))}
+              <span className="ml-2 text-muted-foreground">
+                — View gene summary
+              </span>
+            </CommandItem>,
+            <CommandItem
+              key={`${gene.symbol}-thread`}
+              value={`${gene.symbol} ${gene.name} create thread`}
+              onSelect={() =>
+                runCommand(() => router.push(`/thread/gene/${gene.symbol}`))
+              }
+            >
+              <Sparkles className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{gene.symbol}</span>
+              <span className="ml-2 text-muted-foreground">
+                — Create narrative thread
+              </span>
+            </CommandItem>,
+          ])}
         </CommandGroup>
 
         <CommandSeparator />

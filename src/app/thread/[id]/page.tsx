@@ -1,6 +1,7 @@
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { ThreadSection } from "@/components/thread/thread-section";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
+import { ContinueReadingButton } from "@/components/thread/continue-reading-button";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { ImageAsset } from "@/lib/types/image-pack";
@@ -191,9 +192,16 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
             />
           )}
           {i < thread.sections.length - 1 && (
-            <Button variant="ghost" size="sm" disabled>
-              Continue reading ↓
-            </Button>
+            <ContinueReadingButton
+              threadTitle={thread.title}
+              sectionTitle={section.title}
+              prose={section.prose}
+              claimsSummary={section.claims
+                .map((c) => c.claimText)
+                .join(" ")
+                .slice(0, 300)}
+              nextSectionHint={thread.sections[i + 1]?.title}
+            />
           )}
         </ThreadSection>
       ))}
