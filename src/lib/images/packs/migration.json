@@ -1,0 +1,38 @@
+{
+  "id": "evidence",
+  "name": "Evidence & Investigation",
+  "tags": ["evidence", "archive", "knowledge", "uncertainty", "investigation", "broken"],
+  "description": "The tools and textures of investigation — drawers full of records, open books, and the fragments left when certainty breaks.",
+  "assets": [
+    {
+      "id": "archive-drawers",
+      "src": "/images/packs/evidence/archive_drawers.webp",
+      "alt": "Rows of labeled archive drawers in a dimly lit room",
+      "caption": "Every drawer holds a question someone once thought was answered.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    },
+    {
+      "id": "book",
+      "src": "/images/packs/evidence/book.webp",
+      "alt": "An open book with aged pages",
+      "caption": "The evidence is always in the footnotes.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    },
+    {
+      "id": "broken-plate",
+      "src": "/images/packs/evidence/broken_plate.webp",
+      "alt": "A ceramic plate broken into pieces, carefully laid out",
+      "caption": "Certainty shatters. The pieces remain.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    }
+  ]
+}

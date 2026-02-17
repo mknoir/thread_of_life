@@ -1,65 +1,98 @@
-import Image from "next/image";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { JourneyGrid } from "@/components/home/journey-grid";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="space-y-8">
+      {/* Hero */}
+      <section className="space-y-4">
+        <h1 className="text-4xl font-bold tracking-tight">Thread of Life</h1>
+        <p className="max-w-2xl text-lg text-muted-foreground">
+          Pull the thread on any gene or variant. See what science actually
+          knows — and what it doesn&apos;t. No hype, no false certainty. Just
+          the evidence, told as a story.
+        </p>
+      </section>
+
+      <Separator />
+
+      {/* Main Tabs */}
+      <Tabs defaultValue="journeys" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="journeys">Journeys</TabsTrigger>
+          <TabsTrigger value="explore">Explore</TabsTrigger>
+          <TabsTrigger value="manifesto">Manifesto</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="journeys" className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold tracking-tight">
+              Choose a thread to pull
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Each journey walks you through a gene, a variant, or a question —
+              with evidence at every step.
+            </p>
+          </div>
+          <JourneyGrid />
+        </TabsContent>
+
+        <TabsContent value="explore" className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold tracking-tight">
+              Go straight to a gene or variant
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Press{" "}
+              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs">
+                ⌘K
+              </kbd>{" "}
+              to search, or type a gene symbol below.
+            </p>
+          </div>
+          <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
+            <p className="text-sm text-muted-foreground">
+              Search coming soon — use ⌘K for now
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="manifesto" className="space-y-4">
+          <div className="max-w-2xl space-y-4">
+            <h2 className="text-xl font-semibold tracking-tight">
+              What we believe
+            </h2>
+            <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                Genetic information is powerful, personal, and often
+                misunderstood. Thread of Life exists because we believe you
+                deserve better than a raw data dump or a marketing pitch.
+              </p>
+              <p>
+                Every piece of evidence we show you comes from a public,
+                peer-reviewed, or government-funded source: ClinVar, ClinGen,
+                gnomAD, GTEx. We don&apos;t editorialize the science. We do
+                editorialize the presentation — because clarity is a form of
+                respect.
+              </p>
+              <p>
+                <strong>Images are mood. Evidence is evidence.</strong> When you
+                see a historical photograph, it&apos;s there to evoke the human
+                story behind the data. When you open the evidence drawer,
+                you&apos;ll find citations, dates, and links. We never let one
+                masquerade as the other.
+              </p>
+              <p>
+                Uncertainty is not a failure. It&apos;s the honest state of most
+                genetic knowledge. We show you what&apos;s known, what&apos;s
+                contested, and what&apos;s still a mystery — and we label each
+                clearly.
+              </p>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

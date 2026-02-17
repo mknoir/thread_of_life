@@ -1,0 +1,38 @@
+{
+  "id": "thread",
+  "name": "Thread & Connection",
+  "tags": ["thread", "connection", "journey", "dna", "web", "structure"],
+  "description": "Visual metaphors for connection, structure, and the thread that runs through life — braided ropes, webs, spiraling paths.",
+  "assets": [
+    {
+      "id": "braided-rope",
+      "src": "/images/packs/thread/braided_rope.webp",
+      "alt": "A tightly braided rope showing intertwined strands",
+      "caption": "Every thread tells a story when you follow it far enough.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    },
+    {
+      "id": "spiderweb",
+      "src": "/images/packs/thread/spiderweb.webp",
+      "alt": "An intricate spiderweb glistening with fine detail",
+      "caption": "Connections too fine to see — until you look.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    },
+    {
+      "id": "spiral-stairs",
+      "src": "/images/packs/thread/spiral_stairs.webp",
+      "alt": "A spiral staircase viewed from above, descending into depth",
+      "caption": "The deeper you go, the more the pattern reveals itself.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    }
+  ]
+}

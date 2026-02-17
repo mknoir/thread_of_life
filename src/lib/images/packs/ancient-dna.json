@@ -1,0 +1,28 @@
+{
+  "id": "history",
+  "name": "History & Time",
+  "tags": ["history", "ancient", "time", "civilization", "ruins", "migration", "archaeology"],
+  "description": "The long view — ancient ruins, tree rings, and the patient record of time passing through living things.",
+  "assets": [
+    {
+      "id": "mohenjodaro",
+      "src": "/images/packs/history/mohenjodaro.webp",
+      "alt": "The ancient ruins of Mohenjo-daro, an Indus Valley archaeological site",
+      "caption": "Frequencies move with people.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    },
+    {
+      "id": "tree-rings",
+      "src": "/images/packs/history/tree_rings.webp",
+      "alt": "Cross-section of a tree trunk showing concentric growth rings",
+      "caption": "Time writes itself into everything that lives.",
+      "sourceName": "Thread of Life project",
+      "sourceUrl": "",
+      "license": "Project asset",
+      "attribution": "Thread of Life"
+    }
+  ]
+}
