@@ -20,7 +20,7 @@ interface SiteHeaderProps {
 export function SiteHeader({ onOpenSearch }: SiteHeaderProps) {
   const pathname = usePathname();
 
-  const navItems = [{ href: "/manifesto", label: "Manifesto" }];
+  const navItems = [{ href: "/manifesto", label: "About" }];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

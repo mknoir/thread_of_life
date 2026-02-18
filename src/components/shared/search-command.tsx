@@ -112,7 +112,7 @@ export function SearchCommand({ open, onOpenChange }: SearchCommandProps) {
             onSelect={() => runCommand(() => router.push("/manifesto"))}
           >
             <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-            <span>Go to Manifesto</span>
+            <span>Go to About</span>
           </CommandItem>
           <CommandItem
             onSelect={() => runCommand(() => router.push("/"))}

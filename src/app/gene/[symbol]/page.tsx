@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { GeneSummaryCard } from "@/components/gene/gene-summary";
+import { GeneStatsPanel } from "@/components/gene/gene-stats-panel";
 import { EvidenceAccordion } from "@/components/gene/evidence-accordion";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { EpistemicAlert } from "@/components/shared/epistemic-alert";
@@ -40,6 +41,10 @@ export default async function GenePage({ params }: GenePageProps) {
           sourceVersions={gene.sourceVersions}
         />
       </section>
+
+      <Separator />
+
+      <GeneStatsPanel gene={gene} />
 
       <Separator />
 

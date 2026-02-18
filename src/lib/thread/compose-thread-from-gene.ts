@@ -113,7 +113,7 @@ export function composeThreadFromGene(gene: GeneSummary): ThreadData {
           {
             id: `gtex-${sym}`,
             sourceName: "GTEx",
-            date: gene.sourceVersions.gtex ?? "v8",
+            date: gene.sourceVersions.gtex ?? "v10",
             link: `https://gtexportal.org/home/gene/${sym}`,
             excerpt: `Top tissues: ${tissueList}`,
           },
@@ -125,7 +125,7 @@ export function composeThreadFromGene(gene: GeneSummary): ThreadData {
       prose: expressionProse,
       imageAsset: getAssetById("thread", "spiral-stairs") ?? undefined,
       claims: expressionClaims,
-      sourceVersions: { gtex: gene.sourceVersions.gtex ?? "v8" },
+      sourceVersions: { gtex: gene.sourceVersions.gtex ?? "v10" },
     });
   }
 

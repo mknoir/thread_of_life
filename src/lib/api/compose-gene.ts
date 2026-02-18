@@ -77,7 +77,7 @@ export async function composeGeneSummary(
   if (clinvar) sourceVersions.clinvar = today;
   if (constraint) sourceVersions.gnomad = "4.1";
   if (clingen) sourceVersions.clingen = today;
-  if (gtex.length > 0) sourceVersions.gtex = "v8";
+  if (gtex.length > 0) sourceVersions.gtex = "v10";
 
   return {
     symbol: upperSymbol,
