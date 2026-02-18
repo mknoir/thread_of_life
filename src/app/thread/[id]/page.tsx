@@ -1,9 +1,9 @@
 import { redirect, notFound } from "next/navigation";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { ThreadSection } from "@/components/thread/thread-section";
+import { ThreadFooterActions } from "@/components/thread/thread-footer-actions";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { ContinueReadingButton } from "@/components/thread/continue-reading-button";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   GENE_JOURNEY_REDIRECTS,
@@ -84,14 +84,10 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
         <p className="text-center text-sm text-muted-foreground">
           — End of thread —
         </p>
-        <div className="flex justify-center gap-3">
-          <Button variant="outline" size="sm">
-            Share this thread
-          </Button>
-          <Button variant="outline" size="sm">
-            Copy permalink
-          </Button>
-        </div>
+        <ThreadFooterActions
+          title={thread.title}
+          sharePath={`/thread/${encodeURIComponent(id)}`}
+        />
       </footer>
     </div>
   );

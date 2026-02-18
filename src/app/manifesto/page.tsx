@@ -47,7 +47,7 @@ export default function ManifestoPage() {
           each clearly.
         </p>
 
-        <h2>No hype, no false certainty</h2>
+        <h2>No false certainty</h2>
         <p>
           We will never imply that a genetic variant determines your destiny. We
           will never use historical imagery to suggest certainty about the past.
@@ -61,6 +61,28 @@ export default function ManifestoPage() {
           — the narrative, the journeys, the threads — is our contribution. We
           believe that making science accessible is itself a form of scientific
           work.
+        </p>
+
+        <h2>Reference builds: GRCh37 (hg19) vs GRCh38 (hg38)</h2>
+        <p>
+          Not all coordinates are the same map. A variant location in GRCh37
+          (also called hg19) does not always match the same numeric position in
+          GRCh38 (hg38). The human reference genome has been revised over time:
+          patches, corrected regions, and improved representations of difficult
+          loci. GRCh37 became the dominant clinical coordinate system for years;
+          GRCh38 improved many regions and is now standard in newer resources.
+        </p>
+        <p>
+          When you compare results across tools, this matters. Two reports can
+          disagree on position but still describe the same biological variant,
+          because they are using different references. We try to make build
+          context explicit whenever possible, and we encourage checking whether a
+          source is reporting in hg19 or hg38 before drawing conclusions.
+        </p>
+        <p>
+          The short version: if the map changes, the street number can change.
+          The science doesn&apos;t become less true — but interpretation requires
+          knowing which map you&apos;re on.
         </p>
       </article>
     </div>

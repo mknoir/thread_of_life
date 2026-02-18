@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { ThreadSection } from "@/components/thread/thread-section";
+import { ThreadFooterActions } from "@/components/thread/thread-footer-actions";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { GeneStatsPanel } from "@/components/gene/gene-stats-panel";
 import { ContinueReadingButton } from "@/components/thread/continue-reading-button";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { PreReadCard } from "@/components/shared/pre-read-card";
 import { fetchGeneData } from "@/lib/api/fetch-gene";
 import { composeThreadFromGene } from "@/lib/thread/compose-thread-from-gene";
 
@@ -25,6 +26,25 @@ export default async function GeneThreadPage({ params }: GeneThreadPageProps) {
   }
 
   const thread = composeThreadFromGene(gene);
+  const threadFacts: string[] = [
+    `Gene symbol: ${gene.symbol}.`,
+    `Thread title: ${thread.title}.`,
+    gene.clingenValidity
+      ? `ClinGen validity: ${gene.clingenValidity}.`
+      : "ClinGen validity is unavailable.",
+    gene.clinvarSummary
+      ? `ClinVar counts include ${gene.clinvarSummary.pathogenic.toLocaleString()} pathogenic, ${gene.clinvarSummary.likelyPathogenic.toLocaleString()} likely pathogenic, and ${gene.clinvarSummary.vus.toLocaleString()} VUS entries.`
+      : "ClinVar summary is unavailable.",
+    gene.topExpressions.length > 0
+      ? `GTEx top tissues: ${gene.topExpressions
+          .slice(0, 3)
+          .map((t) => `${t.tissue} (${t.tpm.toFixed(1)} TPM)`)
+          .join(", ")}.`
+      : "GTEx tissue expression is unavailable.",
+    gene.gnomadLandscape
+      ? `gnomAD maps ${gene.gnomadLandscape.totalVariants.toLocaleString()} variants across the gene span on GRCh38.`
+      : "gnomAD positional landscape is unavailable.",
+  ];
 
   return (
     <div className="space-y-10">
@@ -36,6 +56,12 @@ export default async function GeneThreadPage({ params }: GeneThreadPageProps) {
           {thread.subtitle}
         </p>
       </header>
+
+      <PreReadCard
+        pageType="gene-thread"
+        title={thread.title}
+        facts={threadFacts}
+      />
 
       <Separator />
 
@@ -78,14 +104,10 @@ export default async function GeneThreadPage({ params }: GeneThreadPageProps) {
         <p className="text-center text-sm text-muted-foreground">
           — End of thread —
         </p>
-        <div className="flex justify-center gap-3">
-          <Button variant="outline" size="sm">
-            Share this thread
-          </Button>
-          <Button variant="outline" size="sm">
-            Copy permalink
-          </Button>
-        </div>
+        <ThreadFooterActions
+          title={thread.title}
+          sharePath={`/thread/gene/${encodeURIComponent(gene.symbol)}`}
+        />
       </footer>
     </div>
   );

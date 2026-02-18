@@ -8,6 +8,7 @@ const JOURNEYS: JourneyCardProps[] = [
     description:
       "Walk through BRCA1 — from what it does in your cells, to what a variant means, to how interpretations have changed over 20 years.",
     tags: ["BRCA1", "breast cancer", "hereditary"],
+    ctaLabel: "Explore BRCA1",
     imageCaption: "Every thread tells a story when you follow it far enough.",
     imageSrc: "/images/packs/thread/braided_rope.webp",
   },
@@ -18,6 +19,7 @@ const JOURNEYS: JourneyCardProps[] = [
     description:
       "What happens when a genetic test returns a VUS? Explore why uncertainty is the most common result, and what it means for you.",
     tags: ["VUS", "interpretation", "uncertainty"],
+    ctaLabel: "Understand VUS",
     imageCaption: "Certainty shatters. The pieces remain.",
     imageSrc: "/images/packs/evidence/broken_plate.webp",
   },
@@ -28,6 +30,7 @@ const JOURNEYS: JourneyCardProps[] = [
     description:
       "Explore how migration, isolation, and admixture created the genetic variation we see today — and why population matters in clinical interpretation.",
     tags: ["population", "migration", "ancestry"],
+    ctaLabel: "See population story",
     imageCaption: "Frequencies move with people.",
     imageSrc: "/images/packs/history/mohenjodaro.webp",
   },
@@ -38,6 +41,7 @@ const JOURNEYS: JourneyCardProps[] = [
     description:
       "MTHFR variants are common and mostly benign. But the story of how they became a wellness obsession tells us something about genetic literacy.",
     tags: ["MTHFR", "wellness", "evidence"],
+    ctaLabel: "Read MTHFR evidence",
     imageCaption: "Every drawer holds a question someone once thought was answered.",
     imageSrc: "/images/packs/evidence/archive_drawers.webp",
   },
@@ -48,6 +52,7 @@ const JOURNEYS: JourneyCardProps[] = [
     description:
       "ClinVar tracks how variant interpretations change over time. See real examples of reclassification — and why it's a feature, not a bug.",
     tags: ["ClinVar", "reclassification", "time"],
+    ctaLabel: "Track reclassifications",
     imageCaption: "Time writes itself into everything that lives.",
     imageSrc: "/images/packs/history/tree_rings.webp",
   },
@@ -58,6 +63,7 @@ const JOURNEYS: JourneyCardProps[] = [
     description:
       "Some variants we carry today were present in populations thousands of years ago. Explore what ancient DNA studies are uncovering about the deep history of human genetic variation.",
     tags: ["ancient DNA", "history", "migration"],
+    ctaLabel: "Explore ancient DNA",
     imageCaption: "The evidence is always in the footnotes.",
     imageSrc: "/images/packs/evidence/book.webp",
   },
@@ -66,8 +72,9 @@ const JOURNEYS: JourneyCardProps[] = [
     title: "Create your own thread",
     hook: "Any gene. Your story.",
     description:
-      "Enter a gene symbol and we'll compose a narrative thread from live data — ClinVar, gnomAD, ClinGen, and GTEx. Pull the thread on any gene.",
+      "Enter a gene symbol and we'll compose a narrative thread from live data — ClinVar, gnomAD, ClinGen, and GTEx.",
     tags: ["create", "gene", "explore"],
+    ctaLabel: "Open explore",
     imageCaption: "Every thread tells a story when you follow it far enough.",
     imageSrc: "/images/packs/thread/spiderweb.webp",
     href: "/?tab=explore",

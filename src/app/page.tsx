@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <Separator />
 
       {/* Main Tabs */}
-      <Tabs defaultValue={defaultTab} className="space-y-6">
+      <Tabs key={defaultTab} defaultValue={defaultTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="journeys">Journeys</TabsTrigger>
           <TabsTrigger value="explore">Explore</TabsTrigger>
@@ -53,14 +53,16 @@ export default async function Home({ searchParams }: HomeProps) {
               <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs">
                 ⌘K
               </kbd>{" "}
-              to search, or type a gene symbol below.
+              to search, or type a gene symbol / variant ID below.
             </p>
           </div>
           <div className="rounded-lg border border-dashed p-6">
-            <GeneExploreForm />
+            <GeneExploreForm autoFocus={defaultTab === "explore"} />
             <p className="mt-4 text-xs text-muted-foreground">
-              Enter a gene symbol to generate a narrative thread from ClinVar,
-              gnomAD, ClinGen, and GTEx data.
+              Enter a gene symbol to generate a narrative thread, or a variant
+              ID like{" "}
+              <span className="font-mono">17-43057051-C-CC</span> to open the
+              variant detail page.
             </p>
           </div>
         </TabsContent>

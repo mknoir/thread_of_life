@@ -1,7 +1,7 @@
 import "server-only";
 
 import { fetchClinvarGene } from "./clinvar";
-import { fetchGnomadGeneConstraint } from "./gnomad";
+import { fetchGnomadGeneConstraint, fetchGnomadGeneLandscape } from "./gnomad";
 import { fetchClingenValidity } from "./clingen";
 import { fetchGtexExpression } from "./gtex";
 import type { GeneSummary } from "../types/gene";
@@ -17,10 +17,11 @@ export async function composeGeneSummary(
   const upperSymbol = symbol.toUpperCase();
 
   // Fetch all sources in parallel
-  const [clinvarResult, constraintResult, clingenResult, gtexResult] =
+  const [clinvarResult, constraintResult, landscapeResult, clingenResult, gtexResult] =
     await Promise.allSettled([
       fetchClinvarGene(upperSymbol),
       fetchGnomadGeneConstraint(upperSymbol),
+      fetchGnomadGeneLandscape(upperSymbol),
       fetchClingenValidity(upperSymbol),
       fetchGtexExpression(upperSymbol),
     ]);
@@ -29,6 +30,8 @@ export async function composeGeneSummary(
     clinvarResult.status === "fulfilled" ? clinvarResult.value : null;
   const constraint =
     constraintResult.status === "fulfilled" ? constraintResult.value : null;
+  const gnomadLandscape =
+    landscapeResult.status === "fulfilled" ? landscapeResult.value : null;
   const clingen =
     clingenResult.status === "fulfilled" ? clingenResult.value : null;
   const gtex =
@@ -75,7 +78,7 @@ export async function composeGeneSummary(
 
   const sourceVersions: Record<string, string> = {};
   if (clinvar) sourceVersions.clinvar = today;
-  if (constraint) sourceVersions.gnomad = "4.1";
+  if (constraint || gnomadLandscape) sourceVersions.gnomad = "4.1";
   if (clingen) sourceVersions.clingen = today;
   if (gtex.length > 0) sourceVersions.gtex = "v10";
 
@@ -84,7 +87,7 @@ export async function composeGeneSummary(
     name: `${upperSymbol} gene`,
     hgncId: "",
     description: "",
-    chromosome: "",
+    chromosome: gnomadLandscape?.chromosome ?? "",
     clinvarSummary: clinvar
       ? {
           totalVariants: clinvar.totalVariants,
@@ -94,6 +97,16 @@ export async function composeGeneSummary(
           benign: clinvar.benign,
           likelyBenign: clinvar.likelyBenign,
           conflicting: clinvar.conflicting,
+          other: Math.max(
+            0,
+            clinvar.totalVariants -
+              (clinvar.pathogenic +
+                clinvar.likelyPathogenic +
+                clinvar.vus +
+                clinvar.likelyBenign +
+                clinvar.benign +
+                clinvar.conflicting)
+          ),
         }
       : null,
     constraint: constraint
@@ -103,6 +116,7 @@ export async function composeGeneSummary(
           misZScore: constraint.misZScore,
         }
       : null,
+    gnomadLandscape,
     topExpressions: gtex,
     clingenValidity: clingen?.validity ?? null,
     claims,
