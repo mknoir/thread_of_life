@@ -121,9 +121,18 @@ export function ClinvarDistributionChart({
                 ))}
               </Pie>
               <RechartsTooltip
-                formatter={(value: number, name: string) => {
-                  const pct = Math.round((Number(value) / clinvarSummary.totalVariants) * 100)
-                  return [`${Number(value).toLocaleString()} (${pct}%)`, name]
+                formatter={(value, name) => {
+                  const numericValue =
+                    typeof value === "number" ? value : Number(value ?? 0)
+                  const pct = Math.round(
+                    (numericValue /
+                      Math.max(1, clinvarSummary.totalVariants)) *
+                      100
+                  )
+                  return [
+                    `${numericValue.toLocaleString()} (${pct}%)`,
+                    String(name ?? ""),
+                  ]
                 }}
               />
             </PieChart>
