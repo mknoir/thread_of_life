@@ -20,6 +20,7 @@ export interface GeneClinvarSummary {
   benign: number;
   likelyBenign: number;
   conflicting: number;
+  other: number;
 }
 
 export interface GeneSummary {

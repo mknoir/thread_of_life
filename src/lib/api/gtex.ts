@@ -50,16 +50,59 @@ export async function fetchGtexExpression(
 }
 
 async function resolveGencodeId(symbol: string): Promise<string | null> {
+  const upperSymbol = symbol.toUpperCase();
+
+  // Prefer exact-symbol match from reference/gene (more reliable than geneSearch for symbols like TTN vs TTN-AS1).
+  const exact = await fetchReferenceGeneId(upperSymbol);
+  if (exact) return exact;
+
+  // Fallback: search endpoint, but still require exact geneSymbol match before accepting.
+  const searched = await fetchGeneSearchId(upperSymbol);
+  if (searched) return searched;
+
+  return null;
+}
+
+async function fetchReferenceGeneId(symbol: string): Promise<string | null> {
   try {
-    const url = `${GTEX_API}/reference/geneSearch?geneId=${encodeURIComponent(symbol.toUpperCase())}&genomeBuild=GRCh38%2Fhg38&page=0&itemsPerPage=1`;
+    const url = `${GTEX_API}/reference/gene?geneId=${encodeURIComponent(symbol)}&genomeBuild=GRCh38%2Fhg38&page=0&itemsPerPage=25`;
     const res = await fetch(url, {
       next: { revalidate: 2592000 }, // 30 days
     });
     if (!res.ok) return null;
 
     const data = await res.json();
-    const first = data?.data?.[0];
-    const gencodeId = first?.gencodeId;
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    const exactRow = rows.find(
+      (row: { geneSymbol?: string }) =>
+        typeof row?.geneSymbol === "string" &&
+        row.geneSymbol.toUpperCase() === symbol
+    );
+    const gencodeId = exactRow?.gencodeId;
+    return typeof gencodeId === "string" && gencodeId.length > 0
+      ? gencodeId
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchGeneSearchId(symbol: string): Promise<string | null> {
+  try {
+    const url = `${GTEX_API}/reference/geneSearch?geneId=${encodeURIComponent(symbol)}&genomeBuild=GRCh38%2Fhg38&page=0&itemsPerPage=25`;
+    const res = await fetch(url, {
+      next: { revalidate: 2592000 }, // 30 days
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    const exactRow = rows.find(
+      (row: { geneSymbol?: string }) =>
+        typeof row?.geneSymbol === "string" &&
+        row.geneSymbol.toUpperCase() === symbol
+    );
+    const gencodeId = exactRow?.gencodeId;
     return typeof gencodeId === "string" && gencodeId.length > 0
       ? gencodeId
       : null;

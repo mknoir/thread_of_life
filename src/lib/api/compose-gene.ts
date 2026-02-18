@@ -94,6 +94,16 @@ export async function composeGeneSummary(
           benign: clinvar.benign,
           likelyBenign: clinvar.likelyBenign,
           conflicting: clinvar.conflicting,
+          other: Math.max(
+            0,
+            clinvar.totalVariants -
+              (clinvar.pathogenic +
+                clinvar.likelyPathogenic +
+                clinvar.vus +
+                clinvar.likelyBenign +
+                clinvar.benign +
+                clinvar.conflicting)
+          ),
         }
       : null,
     constraint: constraint

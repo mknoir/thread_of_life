@@ -34,7 +34,7 @@ export function GeneSummaryCard({ gene }: GeneSummaryCardProps) {
           <h3 className="text-sm font-medium text-muted-foreground">
             ClinVar variant classifications
           </h3>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-7">
             {[
               {
                 label: "Pathogenic",
@@ -53,6 +53,10 @@ export function GeneSummaryCard({ gene }: GeneSummaryCardProps) {
               {
                 label: "Conflicting",
                 count: gene.clinvarSummary.conflicting,
+              },
+              {
+                label: "Other",
+                count: gene.clinvarSummary.other ?? 0,
               },
             ].map(({ label, count }) => (
               <div key={label} className="text-center">
