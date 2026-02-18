@@ -1,6 +1,13 @@
 import "server-only";
+import type { GnomadGeneLandscape } from "@/lib/types/gene";
 
 const GNOMAD_API = "https://gnomad.broadinstitute.org/api";
+const GNOMAD_HEADERS = {
+  "Content-Type": "application/json",
+  "User-Agent": "Mozilla/5.0",
+  Origin: "https://gnomad.broadinstitute.org",
+  Referer: "https://gnomad.broadinstitute.org/",
+};
 
 interface GnomadGeneConstraint {
   pLI: number | null;
@@ -14,6 +21,38 @@ interface GnomadVariantFrequency {
   alleleCount: number;
   alleleNumber: number;
   homozygoteCount: number;
+}
+
+interface GnomadGraphqlResponse<T> {
+  data?: T;
+  errors?: Array<{ message?: string }>;
+}
+
+async function gnomadGraphql<T>(
+  query: string,
+  variables: Record<string, string>
+): Promise<GnomadGraphqlResponse<T> | null> {
+  const res = await fetch(GNOMAD_API, {
+    method: "POST",
+    headers: GNOMAD_HEADERS,
+    body: JSON.stringify({ query, variables }),
+    next: { revalidate: 2592000 }, // 30 days
+  });
+  if (!res.ok) return null;
+  const payload = (await res.json()) as GnomadGraphqlResponse<T>;
+  return payload;
+}
+
+function isLofConsequence(consequence: string): boolean {
+  return [
+    "transcript_ablation",
+    "splice_acceptor_variant",
+    "splice_donor_variant",
+    "stop_gained",
+    "frameshift_variant",
+    "stop_lost",
+    "start_lost",
+  ].includes(consequence);
 }
 
 /**
@@ -37,20 +76,10 @@ export async function fetchGnomadGeneConstraint(
   `;
 
   try {
-    const res = await fetch(GNOMAD_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        variables: { geneSymbol: symbol.toUpperCase() },
-      }),
-      next: { revalidate: 2592000 }, // 30 days
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const constraint = data?.data?.gene?.gnomad_constraint;
+    const payload = await gnomadGraphql<{
+      gene?: { gnomad_constraint?: { pLI?: number; oe_lof_upper?: number; mis_z?: number } };
+    }>(query, { geneSymbol: symbol.toUpperCase() });
+    const constraint = payload?.data?.gene?.gnomad_constraint;
 
     if (!constraint) return null;
 
@@ -100,20 +129,13 @@ export async function fetchGnomadVariantFrequencies(
   `;
 
   try {
-    const res = await fetch(GNOMAD_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        variables: { variantId },
-      }),
-      next: { revalidate: 2592000 }, // 30 days
-    });
-
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    const variant = data?.data?.variant;
+    const payload = await gnomadGraphql<{
+      variant?: {
+        exome?: { populations?: Array<{ id: string; ac: number; an: number; homozygote_count: number }> };
+        genome?: { populations?: Array<{ id: string; ac: number; an: number; homozygote_count: number }> };
+      };
+    }>(query, { variantId });
+    const variant = payload?.data?.variant;
     if (!variant) return [];
 
     // Prefer exome data, fall back to genome
@@ -149,5 +171,110 @@ export async function fetchGnomadVariantFrequencies(
       error
     );
     return [];
+  }
+}
+
+/**
+ * Fetch and aggregate full-gene variant distribution from gnomAD.
+ * Uses all returned variants for the gene, then compresses to bins for UI rendering.
+ */
+export async function fetchGnomadGeneLandscape(
+  symbol: string,
+  binCount = 120
+): Promise<GnomadGeneLandscape | null> {
+  const query = `
+    query GeneVariantLandscape($geneSymbol: String!) {
+      gene(gene_symbol: $geneSymbol, reference_genome: GRCh38) {
+        chrom
+        start
+        stop
+        variants(dataset: gnomad_r4) {
+          pos
+          consequence
+          exome { ac an }
+          genome { ac an }
+        }
+      }
+    }
+  `;
+
+  try {
+    const payload = await gnomadGraphql<{
+      gene?: {
+        chrom?: string;
+        start?: number;
+        stop?: number;
+        variants?: Array<{
+          pos?: number;
+          consequence?: string;
+          exome?: { ac?: number; an?: number } | null;
+          genome?: { ac?: number; an?: number } | null;
+        }>;
+      };
+    }>(query, { geneSymbol: symbol.toUpperCase() });
+
+    const gene = payload?.data?.gene;
+    if (!gene?.chrom || !gene.start || !gene.stop) return null;
+    const chromosome = gene.chrom;
+    const regionStart = gene.start;
+    const regionEnd = gene.stop;
+
+    const variants = gene.variants ?? [];
+    const safeBinCount = Math.max(24, Math.min(200, binCount));
+    const regionLength = Math.max(1, regionEnd - regionStart + 1);
+    const step = Math.max(1, Math.ceil(regionLength / safeBinCount));
+
+    const bins = Array.from({ length: safeBinCount }, (_, index) => {
+      const start = regionStart + index * step;
+      const end = Math.min(regionEnd, start + step - 1);
+      return {
+        index,
+        start,
+        end,
+        total: 0,
+        lof: 0,
+        missense: 0,
+        synonymous: 0,
+        other: 0,
+        maxAf: 0,
+      };
+    });
+
+    for (const variant of variants) {
+      if (!variant.pos || variant.pos < regionStart || variant.pos > regionEnd) continue;
+      const idx = Math.min(
+        bins.length - 1,
+        Math.floor((variant.pos - regionStart) / step)
+      );
+      const bin = bins[idx];
+      bin.total += 1;
+      const consequence = variant.consequence ?? "other";
+      if (isLofConsequence(consequence)) bin.lof += 1;
+      else if (consequence.includes("missense")) bin.missense += 1;
+      else if (consequence.includes("synonymous")) bin.synonymous += 1;
+      else bin.other += 1;
+
+      const exomeAf =
+        (variant.exome?.an ?? 0) > 0
+          ? (variant.exome?.ac ?? 0) / (variant.exome?.an ?? 1)
+          : 0;
+      const genomeAf =
+        (variant.genome?.an ?? 0) > 0
+          ? (variant.genome?.ac ?? 0) / (variant.genome?.an ?? 1)
+          : 0;
+      bin.maxAf = Math.max(bin.maxAf, exomeAf, genomeAf);
+    }
+
+    return {
+      chromosome,
+      regionStart,
+      regionEnd,
+      totalVariants: variants.length,
+      binCount: bins.length,
+      bins,
+    };
+  } catch (error) {
+    console.error(`gnomAD gene landscape fetch failed for ${symbol}:`, error);
+    return null;
   }
 }

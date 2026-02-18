@@ -11,6 +11,7 @@ import type { Claim } from "../types/claim";
 export async function composeVariantSummary(
   variantId: string
 ): Promise<VariantSummary> {
+  const parsedVariant = parseVariantId(variantId);
   const [clinvarResult, gnomadResult] = await Promise.allSettled([
     fetchClinvarVariant(variantId),
     fetchGnomadVariantFrequencies(variantId),
@@ -72,12 +73,12 @@ export async function composeVariantSummary(
 
   return {
     variantId,
-    hgvs: "",
+    hgvs: variantId,
     gene: "",
-    chromosome: "",
-    position: 0,
-    refAllele: "",
-    altAllele: "",
+    chromosome: parsedVariant?.chromosome ?? "",
+    position: parsedVariant?.position ?? 0,
+    refAllele: parsedVariant?.refAllele ?? "",
+    altAllele: parsedVariant?.altAllele ?? "",
     clinicalSignificance: clinSig,
     reviewStatus: normalizeReviewStatus(clinvar?.reviewStatus ?? ""),
     submissions: (clinvar?.submissions ?? []).map((s) => ({
@@ -90,6 +91,28 @@ export async function composeVariantSummary(
     sourceVersions,
     fetchedAt: new Date().toISOString(),
   };
+}
+
+function parseVariantId(variantId: string): {
+  chromosome: string;
+  position: number;
+  refAllele: string;
+  altAllele: string;
+} | null {
+  const normalized = variantId.trim().replace(/^chr/i, "");
+  const parts = normalized.split("-");
+  if (parts.length !== 4) return null;
+  const [chromosome, posRaw, refAllele, altAllele] = parts;
+  const position = Number(posRaw);
+  if (
+    !chromosome ||
+    !Number.isFinite(position) ||
+    !refAllele ||
+    !altAllele
+  ) {
+    return null;
+  }
+  return { chromosome, position, refAllele, altAllele };
 }
 
 function normalizeClinicalSignificance(raw: string): ClinicalSignificance {

@@ -33,7 +33,12 @@ export function GeneStatsPanel({ gene, compact = false }: GeneStatsPanelProps) {
       case "clinvar":
         return <ClinvarDistributionChart clinvarSummary={gene.clinvarSummary} />
       case "gnomad":
-        return <GnomadConstraintCards constraint={gene.constraint} />
+        return (
+          <GnomadConstraintCards
+            constraint={gene.constraint}
+            landscape={gene.gnomadLandscape}
+          />
+        )
       case "clingen":
         return <ClingenValidityCard validity={gene.clingenValidity} />
       default:

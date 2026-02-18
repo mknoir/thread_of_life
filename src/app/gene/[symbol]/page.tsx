@@ -6,6 +6,7 @@ import { GeneStatsPanel } from "@/components/gene/gene-stats-panel";
 import { EvidenceAccordion } from "@/components/gene/evidence-accordion";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { EpistemicAlert } from "@/components/shared/epistemic-alert";
+import { PreReadCard } from "@/components/shared/pre-read-card";
 import { fetchGeneData } from "@/lib/api/fetch-gene";
 import type { GeneSummary } from "@/lib/types/gene";
 
@@ -24,6 +25,28 @@ export default async function GenePage({ params }: GenePageProps) {
     notFound();
   }
 
+  const geneFacts: string[] = [
+    `Gene symbol: ${gene.symbol}.`,
+    gene.clinvarSummary
+      ? `ClinVar reports ${gene.clinvarSummary.totalVariants.toLocaleString()} total variants for this gene, including ${gene.clinvarSummary.pathogenic.toLocaleString()} pathogenic and ${gene.clinvarSummary.vus.toLocaleString()} VUS entries.`
+      : "ClinVar summary is unavailable.",
+    gene.constraint?.loeufScore != null
+      ? `gnomAD LOEUF is ${gene.constraint.loeufScore.toFixed(3)}.`
+      : "gnomAD LOEUF is unavailable.",
+    gene.clingenValidity
+      ? `ClinGen validity: ${gene.clingenValidity}.`
+      : "ClinGen validity is unavailable.",
+    gene.topExpressions.length > 0
+      ? `Top GTEx tissues include ${gene.topExpressions
+          .slice(0, 3)
+          .map((t) => `${t.tissue} (${t.tpm.toFixed(1)} TPM)`)
+          .join(", ")}.`
+      : "GTEx tissue expression is unavailable.",
+    gene.gnomadLandscape
+      ? `gnomAD landscape spans chr${gene.gnomadLandscape.chromosome}:${gene.gnomadLandscape.regionStart.toLocaleString()}-${gene.gnomadLandscape.regionEnd.toLocaleString()} with ${gene.gnomadLandscape.totalVariants.toLocaleString()} mapped variants.`
+      : "gnomAD positional landscape is unavailable.",
+  ];
+
   return (
     <div className="space-y-8">
       <BreadcrumbNav />
@@ -39,6 +62,11 @@ export default async function GenePage({ params }: GenePageProps) {
         <EvidenceSheet
           claims={gene.claims}
           sourceVersions={gene.sourceVersions}
+        />
+        <PreReadCard
+          pageType="gene-summary"
+          title={`${gene.symbol} gene summary`}
+          facts={geneFacts}
         />
       </section>
 

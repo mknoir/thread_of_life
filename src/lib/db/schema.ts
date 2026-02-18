@@ -28,7 +28,7 @@ export const variantSummaries = pgTable("variant_summaries", {
 
 /**
  * Caches search results for fast, deterministic search.
- * Pre-seeded with known genes + populated by user queries.
+ * Populated from live query results.
  */
 export const searchCache = pgTable("search_cache", {
   query: text("query").primaryKey(),

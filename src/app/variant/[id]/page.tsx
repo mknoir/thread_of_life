@@ -1,120 +1,16 @@
+import { notFound } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { ClaimHeader } from "@/components/variant/claim-header";
 import { EvidenceTable } from "@/components/variant/evidence-table";
 import { TimelineControls } from "@/components/variant/timeline-controls";
+import { GeneVariantTrack } from "@/components/variant/gene-variant-track";
 import { EvidenceSheet } from "@/components/gene/evidence-sheet";
 import { EpistemicAlert } from "@/components/shared/epistemic-alert";
+import { PreReadCard } from "@/components/shared/pre-read-card";
+import { fetchVariantData } from "@/lib/api/fetch-variant";
 import type { VariantSummary } from "@/lib/types/variant";
-
-function getMockVariant(id: string): VariantSummary {
-  return {
-    variantId: id,
-    hgvs: "NM_007294.4:c.5266dupC",
-    gene: "BRCA1",
-    chromosome: "17",
-    position: 43057051,
-    refAllele: "C",
-    altAllele: "CC",
-    clinicalSignificance: "Pathogenic",
-    reviewStatus: "reviewed by expert panel",
-    submissions: [
-      {
-        submitter: "ENIGMA",
-        classification: "Pathogenic",
-        condition: "Hereditary breast and ovarian cancer",
-        reviewStatus: "reviewed by expert panel",
-        dateLastEvaluated: "2024-09-01",
-        method: "clinical testing",
-      },
-      {
-        submitter: "GeneDx",
-        classification: "Pathogenic",
-        condition: "Hereditary cancer-predisposing syndrome",
-        reviewStatus: "criteria provided, single submitter",
-        dateLastEvaluated: "2023-12-15",
-        method: "clinical testing",
-      },
-      {
-        submitter: "Invitae",
-        classification: "Pathogenic",
-        condition: "Hereditary breast and ovarian cancer",
-        reviewStatus: "criteria provided, single submitter",
-        dateLastEvaluated: "2024-03-22",
-        method: "clinical testing",
-      },
-      {
-        submitter: "Ambry Genetics",
-        classification: "Pathogenic",
-        condition: "Hereditary cancer-predisposing syndrome",
-        reviewStatus: "criteria provided, single submitter",
-        dateLastEvaluated: "2023-08-10",
-        method: "clinical testing",
-      },
-    ],
-    populationFrequencies: [
-      {
-        population: "European (non-Finnish)",
-        alleleFrequency: 0.00012,
-        alleleCount: 15,
-        alleleNumber: 125000,
-        homozygoteCount: 0,
-      },
-      {
-        population: "Ashkenazi Jewish",
-        alleleFrequency: 0.011,
-        alleleCount: 55,
-        alleleNumber: 5000,
-        homozygoteCount: 0,
-      },
-      {
-        population: "South Asian",
-        alleleFrequency: 0.00003,
-        alleleCount: 1,
-        alleleNumber: 30000,
-        homozygoteCount: 0,
-      },
-    ],
-    claims: [
-      {
-        claimText:
-          "This variant is classified as Pathogenic by expert panel review (ENIGMA consortium).",
-        confidenceLevel: "high",
-        evidenceRefs: [
-          {
-            id: "enigma-5266dupc",
-            sourceName: "ClinVar (ENIGMA)",
-            date: "2024-09-01",
-            link: "https://www.ncbi.nlm.nih.gov/clinvar/variation/55598/",
-            excerpt:
-              "Expert panel reviewed: Pathogenic for hereditary breast and ovarian cancer.",
-          },
-        ],
-      },
-      {
-        claimText:
-          "This variant shows significant population frequency variation — notably elevated in Ashkenazi Jewish populations.",
-        confidenceLevel: "moderate",
-        evidenceRefs: [
-          {
-            id: "gnomad-freq",
-            sourceName: "gnomAD",
-            date: "2024-01-01",
-            link: "https://gnomad.broadinstitute.org/variant/17-43057051-C-CC",
-            excerpt:
-              "Allele frequency 0.011 in Ashkenazi Jewish vs 0.00012 in European (non-Finnish).",
-          },
-        ],
-      },
-    ],
-    sourceVersions: {
-      clinvar: "2025-12-01",
-      gnomad: "4.1",
-    },
-    fetchedAt: new Date().toISOString(),
-  };
-}
 
 interface VariantPageProps {
   params: Promise<{ id: string }>;
@@ -122,17 +18,43 @@ interface VariantPageProps {
 
 export default async function VariantPage({ params }: VariantPageProps) {
   const { id } = await params;
-  const variant = getMockVariant(id);
+  if (!id?.trim()) notFound();
+
+  let variant: VariantSummary;
+  try {
+    variant = await fetchVariantData(id);
+  } catch {
+    notFound();
+  }
+
+  const variantFacts: string[] = [
+    `Variant ID: ${variant.variantId}.`,
+    `Gene: ${variant.gene}.`,
+    `Coordinate: chr${variant.chromosome}:${variant.position.toLocaleString()} ${variant.refAllele}>${variant.altAllele}.`,
+    `ClinVar significance: ${variant.clinicalSignificance}.`,
+    `ClinVar review status: ${variant.reviewStatus}.`,
+    `ClinVar submissions: ${variant.submissions.length.toLocaleString()}.`,
+    variant.populationFrequencies.length > 0
+      ? `Highest listed gnomAD population allele frequency is ${Math.max(
+          ...variant.populationFrequencies.map((pf) => pf.alleleFrequency)
+        ).toExponential(2)}.`
+      : "gnomAD population frequencies are unavailable.",
+  ];
 
   return (
     <div className="space-y-8">
       <BreadcrumbNav />
 
       <ClaimHeader
-        hgvs={variant.hgvs}
-        gene={variant.gene}
+        hgvs={variant.hgvs || variant.variantId}
+        gene={variant.gene || "Variant"}
         clinicalSignificance={variant.clinicalSignificance}
         reviewStatus={variant.reviewStatus}
+      />
+      <PreReadCard
+        pageType="variant-summary"
+        title={variant.hgvs || variant.variantId}
+        facts={variantFacts}
       />
 
       <Separator />
@@ -148,11 +70,10 @@ export default async function VariantPage({ params }: VariantPageProps) {
         <TabsContent value="summary" className="space-y-6">
           <div className="max-w-2xl space-y-3">
             <p className="text-sm leading-relaxed text-muted-foreground">
-              This variant in <strong>{variant.gene}</strong> results in a
-              frameshift that disrupts protein function. It has been reviewed by
-              the ENIGMA expert panel and classified as{" "}
-              <strong>{variant.clinicalSignificance}</strong> for hereditary
-              breast and ovarian cancer.
+              This variant is currently classified as{" "}
+              <strong>{variant.clinicalSignificance}</strong>. Interpretations
+              can evolve as evidence accumulates from clinical submissions and
+              population data.
             </p>
           </div>
 
@@ -183,6 +104,19 @@ export default async function VariantPage({ params }: VariantPageProps) {
               </div>
             </div>
           )}
+
+          {variant.regionalVariants &&
+            variant.regionStart &&
+            variant.regionEnd && (
+              <GeneVariantTrack
+                gene={variant.gene}
+                chromosome={variant.chromosome}
+                regionStart={variant.regionStart}
+                regionEnd={variant.regionEnd}
+                variants={variant.regionalVariants}
+                focusVariantId={variant.variantId}
+              />
+            )}
 
           <EpistemicAlert
             title="Population bias likely"

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { searchClinvar } from "@/lib/api/clinvar";
+import { searchCache } from "@/lib/db/schema";
 
 interface SearchResult {
   type: "gene" | "variant" | "journey";
@@ -8,62 +10,7 @@ interface SearchResult {
   description: string;
 }
 
-/**
- * Local gene seed for instant search results.
- * In production, these come from search_cache table.
- */
-const GENE_SEEDS: SearchResult[] = [
-  {
-    type: "gene",
-    id: "BRCA1",
-    title: "BRCA1",
-    description: "Breast cancer type 1 susceptibility protein",
-  },
-  {
-    type: "gene",
-    id: "BRCA2",
-    title: "BRCA2",
-    description: "Breast cancer type 2 susceptibility protein",
-  },
-  {
-    type: "gene",
-    id: "TP53",
-    title: "TP53",
-    description: "Tumor protein p53",
-  },
-  {
-    type: "gene",
-    id: "CFTR",
-    title: "CFTR",
-    description: "Cystic fibrosis transmembrane conductance regulator",
-  },
-  {
-    type: "gene",
-    id: "MTHFR",
-    title: "MTHFR",
-    description: "Methylenetetrahydrofolate reductase",
-  },
-  {
-    type: "gene",
-    id: "MLH1",
-    title: "MLH1",
-    description: "DNA mismatch repair protein",
-  },
-  {
-    type: "gene",
-    id: "APOE",
-    title: "APOE",
-    description: "Apolipoprotein E",
-  },
-  {
-    type: "gene",
-    id: "PTEN",
-    title: "PTEN",
-    description: "Phosphatase and tensin homolog",
-  },
-];
-
-const JOURNEY_SEEDS: SearchResult[] = [
+const JOURNEY_INDEX: SearchResult[] = [
   {
     type: "journey",
     id: "what-is-brca",
@@ -82,15 +29,42 @@ const JOURNEY_SEEDS: SearchResult[] = [
     title: "How populations shape your genome",
     description: "Migration, isolation, and genetic variation.",
   },
+  {
+    type: "journey",
+    id: "mthfr-truth",
+    title: "MTHFR: separating signal from noise",
+    description: "The most over-interpreted gene on the internet.",
+  },
+  {
+    type: "journey",
+    id: "clinvar-evolves",
+    title: "When science changes its mind",
+    description: "Pathogenic yesterday, benign today.",
+  },
+  {
+    type: "journey",
+    id: "ancient-dna",
+    title: "What ancient DNA reveals about modern variants",
+    description: "The past is written in base pairs.",
+  },
+  {
+    type: "journey",
+    id: "create-your-own",
+    title: "Create your own thread",
+    description: "Any gene. Your story.",
+  },
 ];
+
+const VARIANT_ID_REGEX = /^(?:CHR)?[0-9XYM]+-\d+-[A-Z]+-[A-Z]+$/i;
 
 /**
  * GET /api/search?q=<query>
  *
- * Cache-first search:
- * 1. Search local seeds
- * 2. Search cached summaries (when DB is connected)
- * 3. Live API fallback (ClinVar esearch)
+ * Search strategy:
+ * 1. Journey index for curated content routes
+ * 2. Variant-route intent by variant-id pattern
+ * 3. Optional DB-backed search cache lookup
+ * 4. Live ClinVar-assisted gene hint
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -102,37 +76,79 @@ export async function GET(request: Request) {
 
   const lower = query.toLowerCase();
   const results: SearchResult[] = [];
+  const seen = new Set<string>();
+  const addResult = (result: SearchResult) => {
+    const key = `${result.type}:${result.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    results.push(result);
+  };
 
-  // 1. Search local seeds (instant)
-  const matchingGenes = GENE_SEEDS.filter(
-    (g) =>
-      g.id.toLowerCase().includes(lower) ||
-      g.description.toLowerCase().includes(lower)
-  );
-  results.push(...matchingGenes);
-
-  const matchingJourneys = JOURNEY_SEEDS.filter(
+  // 1) Curated journey index.
+  const matchingJourneys = JOURNEY_INDEX.filter(
     (j) =>
       j.title.toLowerCase().includes(lower) ||
       j.description.toLowerCase().includes(lower)
   );
-  results.push(...matchingJourneys);
+  matchingJourneys.forEach(addResult);
 
-  // 2. If no local results, try live ClinVar search as fallback
-  if (results.length === 0) {
+  // 2) Variant entrypoint intent.
+  if (VARIANT_ID_REGEX.test(query)) {
+    const normalized = query.toUpperCase().replace(/^CHR/, "");
+    addResult({
+      type: "variant",
+      id: normalized,
+      title: normalized,
+      description: "Open variant detail page",
+    });
+  }
+
+  // 3) Optional DB-backed cache lookup.
+  if (
+    process.env.DATABASE_URL &&
+    !process.env.DATABASE_URL.includes("user:password")
+  ) {
     try {
-      const clinvarIds = await searchClinvar(query, 5);
-      if (clinvarIds.length > 0) {
-        results.push({
-          type: "gene",
-          id: query.toUpperCase(),
-          title: query.toUpperCase(),
-          description: `Found ${clinvarIds.length} ClinVar entries`,
-        });
+      const { db } = await import("@/lib/db");
+      const cached = await db
+        .select()
+        .from(searchCache)
+        .where(eq(searchCache.query, lower))
+        .limit(1);
+      const cachedResults = cached[0]?.results;
+      if (Array.isArray(cachedResults)) {
+        for (const row of cachedResults) {
+          const candidate = row as Partial<SearchResult>;
+          if (
+            (candidate.type === "gene" ||
+              candidate.type === "variant" ||
+              candidate.type === "journey") &&
+            typeof candidate.id === "string" &&
+            typeof candidate.title === "string" &&
+            typeof candidate.description === "string"
+          ) {
+            addResult(candidate as SearchResult);
+          }
+        }
       }
     } catch {
-      // Silently fail — search should always return fast
+      // Ignore DB cache lookup failures.
     }
+  }
+
+  // 4) Live ClinVar-backed gene hint.
+  try {
+    const clinvarIds = await searchClinvar(query, 5);
+    if (clinvarIds.length > 0) {
+      addResult({
+        type: "gene",
+        id: query.toUpperCase(),
+        title: query.toUpperCase(),
+        description: `Found ${clinvarIds.length} ClinVar entries`,
+      });
+    }
+  } catch {
+    // Keep endpoint resilient.
   }
 
   return NextResponse.json({ results: results.slice(0, 10) });

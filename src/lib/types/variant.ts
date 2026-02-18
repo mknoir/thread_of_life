@@ -35,6 +35,14 @@ export interface PopulationFrequency {
   homozygoteCount: number;
 }
 
+export interface GeneRegionVariant {
+  id: string;
+  position: number;
+  clinicalSignificance: ClinicalSignificance;
+  reviewStatus: ReviewStatus;
+  alleleFrequency?: number | null;
+}
+
 export interface VariantSummary {
   variantId: string;
   hgvs: string;
@@ -47,6 +55,9 @@ export interface VariantSummary {
   reviewStatus: ReviewStatus;
   submissions: ClinvarSubmission[];
   populationFrequencies: PopulationFrequency[];
+  regionStart?: number;
+  regionEnd?: number;
+  regionalVariants?: GeneRegionVariant[];
   claims: Claim[];
   sourceVersions: Record<string, string>;
   fetchedAt: string;

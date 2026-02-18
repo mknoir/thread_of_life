@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlaskConical,
   Map,
@@ -24,22 +24,18 @@ interface SearchCommandProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const SAMPLE_GENES = [
-  { symbol: "BRCA1", name: "Breast cancer type 1 susceptibility protein" },
-  { symbol: "BRCA2", name: "Breast cancer type 2 susceptibility protein" },
-  { symbol: "TP53", name: "Tumor protein p53" },
-  { symbol: "CFTR", name: "Cystic fibrosis transmembrane conductance regulator" },
-  { symbol: "MTHFR", name: "Methylenetetrahydrofolate reductase" },
-];
-
-const SAMPLE_JOURNEYS = [
-  { id: "what-is-brca", title: "What does BRCA1 actually mean for you?" },
-  { id: "vus-explained", title: "The mystery of Variants of Uncertain Significance" },
-  { id: "population-genetics", title: "How populations shape your genome" },
-];
+interface SearchResult {
+  type: "gene" | "variant" | "journey";
+  id: string;
+  title: string;
+  description: string;
+}
 
 export function SearchCommand({ open, onOpenChange }: SearchCommandProps) {
   const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const runCommand = useCallback(
     (command: () => void) => {
@@ -49,61 +45,145 @@ export function SearchCommand({ open, onOpenChange }: SearchCommandProps) {
     [onOpenChange]
   );
 
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+      setLoading(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!open || trimmed.length < 1) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        setResults(Array.isArray(data?.results) ? data.results : []);
+      } catch {
+        if (!controller.signal.aborted) {
+          setResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [query, open]);
+
+  const grouped = useMemo(() => {
+    const genes = results.filter((r) => r.type === "gene");
+    const variants = results.filter((r) => r.type === "variant");
+    const journeys = results.filter((r) => r.type === "journey");
+    return { genes, variants, journeys };
+  }, [results]);
+
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search genes, variants, journeys..." />
+      <CommandInput
+        placeholder="Search genes, variants, journeys..."
+        value={query}
+        onValueChange={setQuery}
+      />
       <CommandList>
         <CommandEmpty>
-          No results found. Try a gene symbol like BRCA1 or TP53.
+          {loading
+            ? "Searching..."
+            : "No results found. Try BRCA1 or 17-43057051-C-CC."}
         </CommandEmpty>
 
-        <CommandGroup heading="Genes">
-          {SAMPLE_GENES.flatMap((gene) => [
-            <CommandItem
-              key={`${gene.symbol}-view`}
-              value={`${gene.symbol} ${gene.name} view gene`}
-              onSelect={() =>
-                runCommand(() => router.push(`/gene/${gene.symbol}`))
-              }
-            >
-              <BookOpen className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{gene.symbol}</span>
-              <span className="ml-2 text-muted-foreground">
-                — View gene summary
-              </span>
-            </CommandItem>,
-            <CommandItem
-              key={`${gene.symbol}-thread`}
-              value={`${gene.symbol} ${gene.name} create thread`}
-              onSelect={() =>
-                runCommand(() => router.push(`/thread/gene/${gene.symbol}`))
-              }
-            >
-              <Sparkles className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{gene.symbol}</span>
-              <span className="ml-2 text-muted-foreground">
-                — Create narrative thread
-              </span>
-            </CommandItem>,
-          ])}
-        </CommandGroup>
+        {grouped.genes.length > 0 && (
+          <CommandGroup heading="Genes">
+            {grouped.genes.flatMap((gene) => [
+              <CommandItem
+                key={`${gene.id}-view`}
+                value={`${gene.title} ${gene.description} view gene`}
+                onSelect={() =>
+                  runCommand(() => router.push(`/gene/${gene.id}`))
+                }
+              >
+                <BookOpen className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{gene.title}</span>
+                <span className="ml-2 text-muted-foreground">
+                  — View gene summary
+                </span>
+              </CommandItem>,
+              <CommandItem
+                key={`${gene.id}-thread`}
+                value={`${gene.title} ${gene.description} create thread`}
+                onSelect={() =>
+                  runCommand(() => router.push(`/thread/gene/${gene.id}`))
+                }
+              >
+                <Sparkles className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{gene.title}</span>
+                <span className="ml-2 text-muted-foreground">
+                  — Create narrative thread
+                </span>
+              </CommandItem>,
+            ])}
+          </CommandGroup>
+        )}
 
-        <CommandSeparator />
+        {grouped.variants.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Variants">
+              {grouped.variants.map((variant) => (
+                <CommandItem
+                  key={variant.id}
+                  value={`${variant.title} ${variant.description}`}
+                  onSelect={() =>
+                    runCommand(() => router.push(`/variant/${variant.id}`))
+                  }
+                >
+                  <BookOpen className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{variant.title}</span>
+                  <span className="ml-2 text-muted-foreground">
+                    — Open variant detail
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
 
-        <CommandGroup heading="Journeys">
-          {SAMPLE_JOURNEYS.map((journey) => (
-            <CommandItem
-              key={journey.id}
-              value={journey.title}
-              onSelect={() =>
-                runCommand(() => router.push(`/thread/${journey.id}`))
-              }
-            >
-              <Map className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>{journey.title}</span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {grouped.journeys.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Journeys">
+              {grouped.journeys.map((journey) => (
+                <CommandItem
+                  key={journey.id}
+                  value={`${journey.title} ${journey.description}`}
+                  onSelect={() =>
+                    runCommand(() => router.push(`/thread/${journey.id}`))
+                  }
+                >
+                  <Map className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>{journey.title}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
 
         <CommandSeparator />
 

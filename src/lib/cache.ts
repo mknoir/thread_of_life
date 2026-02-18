@@ -31,7 +31,7 @@ export async function getCachedGeneSummary(
   symbol: string,
   composeFn: () => Promise<GeneSummary>
 ): Promise<GeneSummary> {
-  const key = `gene:${symbol.toUpperCase()}:summary:v4`;
+  const key = `gene:${symbol.toUpperCase()}:summary:v5`;
   const now = new Date();
 
   // Check cache

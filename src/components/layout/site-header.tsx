@@ -24,7 +24,7 @@ export function SiteHeader({ onOpenSearch }: SiteHeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-14 max-w-5xl items-center px-6">
+      <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-6">
         <Link href="/" className="mr-8 flex items-center space-x-2">
           <span className="text-lg font-semibold tracking-tight">
             Thread of Life
@@ -51,16 +51,16 @@ export function SiteHeader({ onOpenSearch }: SiteHeaderProps) {
           </NavigationMenuList>
         </NavigationMenu>
 
-        <div className="ml-auto flex items-center space-x-2">
+        <div className="ml-auto flex min-w-0 items-center">
           <Button
             variant="outline"
             size="sm"
-            className="relative h-8 w-56 justify-start text-sm text-muted-foreground"
+            className="relative h-9 w-64 justify-start gap-2 pr-14 text-sm text-muted-foreground"
             onClick={onOpenSearch}
           >
-            <Search className="mr-2 h-3.5 w-3.5" />
-            <span>Search genes, variants...</span>
-            <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+            <Search className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Search genes, variants...</span>
+            <kbd className="pointer-events-none absolute right-2 top-1/2 hidden h-5 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
               <span className="text-xs">⌘</span>K
             </kbd>
           </Button>
