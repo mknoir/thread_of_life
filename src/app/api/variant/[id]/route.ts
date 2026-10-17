@@ -1,36 +1,34 @@
 import { NextResponse } from "next/server";
-import { composeVariantSummary } from "@/lib/api/compose-variant";
+import { fetchVariantData } from "@/lib/api/fetch-variant";
+import { parseVariantRequest } from "@/lib/api/variant-identifiers";
 
 /**
- * GET /api/variant/[id]
+ * GET /api/variant/[id]?coordinateId=9-94955251-A-G&refresh=1
  *
  * Returns a composed VariantSummary (ClinVar + gnomAD).
- * Uses cache-aside pattern when DB is connected.
+ * Numeric IDs address ClinVar; GRCh38 allele IDs address gnomAD. An optional
+ * coordinateId supplies a verified VCF representation for the ClinVar record.
+ * Source statuses distinguish absent records, source failures and usable data.
+ * Explicit refresh bypasses the composed-data cache; DB failure falls back live.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const query = new URL(request.url).searchParams;
+  const coordinateId = query.get("coordinateId") ?? undefined;
 
-  if (!id || id.length < 1) {
+  if (!id || !parseVariantRequest(id, coordinateId)) {
     return NextResponse.json(
-      { error: "Variant ID is required" },
+      { error: /^rs\d+$/i.test(id ?? "") ? "An rsID can describe several alleles. Select a specific genomic allele for variant evidence." : "Provide a numeric ClinVar variation ID or a GRCh38 chromosome-position-reference-alternate allele ID." },
       { status: 400 }
     );
   }
 
   try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("user:password")) {
-      const { getCachedVariantSummary } = await import("@/lib/cache");
-      const summary = await getCachedVariantSummary(id, () =>
-        composeVariantSummary(id)
-      );
-      return NextResponse.json(summary);
-    }
-
-    const summary = await composeVariantSummary(id);
-    return NextResponse.json(summary);
+    const summary = await fetchVariantData(id, { coordinateId, refresh: query.get("refresh") === "1" });
+    return NextResponse.json(summary, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error(`Error fetching variant ${id}:`, error);
     return NextResponse.json(

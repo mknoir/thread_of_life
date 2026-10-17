@@ -32,7 +32,19 @@ export interface PopulationFrequency {
   alleleFrequency: number;
   alleleCount: number;
   alleleNumber: number;
-  homozygoteCount: number;
+  homozygoteCount: number | null;
+}
+
+export interface VariantSourceStatus {
+  status: "available" | "not_found" | "unavailable" | "not_applicable";
+  message?: string;
+  url?: string;
+  /** Frequencies come from one dataset; exome and genome cohorts are not added together. */
+  dataset?: "exomes" | "genomes";
+}
+
+export interface VariantSourceResult<T> extends VariantSourceStatus {
+  data: T | null;
 }
 
 export interface GeneRegionVariant {
@@ -45,6 +57,7 @@ export interface GeneRegionVariant {
 
 export interface VariantSummary {
   variantId: string;
+  coordinateId?: string;
   hgvs: string;
   gene: string;
   chromosome: string;
@@ -60,5 +73,6 @@ export interface VariantSummary {
   regionalVariants?: GeneRegionVariant[];
   claims: Claim[];
   sourceVersions: Record<string, string>;
+  sourceStatus?: { clinvar: VariantSourceStatus; gnomad: VariantSourceStatus };
   fetchedAt: string;
 }

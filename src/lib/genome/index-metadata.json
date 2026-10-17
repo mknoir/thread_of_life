@@ -1,0 +1,45 @@
+{
+  "assembly": "GRCh38",
+  "track": "ncbiRefSeqCurated",
+  "source": "NCBI RefSeq via UCSC hg38",
+  "retrievedAt": "2026-10-17T08:25:30.431878+00:00",
+  "sourceLastModified": "2025-08-13T15:30:40+00:00",
+  "coordinates": "1-based inclusive; gene bounds are the union of curated transcript bounds on the same chromosome and strand",
+  "scope": "Chromosomes 1-22, X, Y and MT. Curated RefSeq annotated loci, not all predicted genes or alternate contigs.",
+  "totalGenes": 29949,
+  "genesByChromosome": {
+    "1": 2975,
+    "2": 1946,
+    "3": 1634,
+    "4": 1175,
+    "5": 1392,
+    "6": 1552,
+    "7": 1415,
+    "8": 1143,
+    "9": 1173,
+    "10": 1172,
+    "11": 1802,
+    "12": 1480,
+    "13": 665,
+    "14": 981,
+    "15": 1049,
+    "16": 1214,
+    "17": 1635,
+    "18": 459,
+    "19": 1839,
+    "20": 816,
+    "21": 432,
+    "22": 667,
+    "X": 1175,
+    "Y": 145,
+    "MT": 13
+  },
+  "sources": [
+    "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/ncbiRefSeqCurated.txt.gz",
+    "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/ncbiRefSeqLink.txt.gz"
+  ],
+  "sha256": {
+    "ncbiRefSeqCurated.txt.gz": "67090326b606658bdabdfe5f8dcb97b7943ac802c7945399522be7174ec021ca",
+    "ncbiRefSeqLink.txt.gz": "668e02d0c438d1012688cae73018e781135ec895fc58cd86e5e06517a25389f4"
+  }
+}

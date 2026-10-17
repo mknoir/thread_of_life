@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { composeGeneSummary } from "@/lib/api/compose-gene";
+import { fetchGeneData } from "@/lib/api/fetch-gene";
 
 /**
  * GET /api/gene/[symbol]
@@ -9,31 +9,21 @@ import { composeGeneSummary } from "@/lib/api/compose-gene";
  * Falls back to direct composition when DB is unavailable.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   const { symbol } = await params;
 
-  if (!symbol || symbol.length < 1) {
+  if (!symbol || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/.test(symbol.trim())) {
     return NextResponse.json(
-      { error: "Gene symbol is required" },
+      { error: "Provide a valid gene symbol." },
       { status: 400 }
     );
   }
 
   try {
-    // Try cache-aside if DB is configured
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("user:password")) {
-      const { getCachedGeneSummary } = await import("@/lib/cache");
-      const summary = await getCachedGeneSummary(symbol, () =>
-        composeGeneSummary(symbol)
-      );
-      return NextResponse.json(summary);
-    }
-
-    // No DB — compose directly
-    const summary = await composeGeneSummary(symbol);
-    return NextResponse.json(summary);
+    const summary = await fetchGeneData(symbol, { refresh: new URL(request.url).searchParams.get("refresh") === "1" });
+    return NextResponse.json(summary, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error(`Error fetching gene ${symbol}:`, error);
     return NextResponse.json(
