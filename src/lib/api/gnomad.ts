@@ -1,5 +1,7 @@
 import "server-only";
 import type { GnomadGeneLandscape } from "@/lib/types/gene";
+import type { PopulationFrequency, VariantSourceResult } from "../types/variant";
+import { parseCoordinateVariant } from "./variant-identifiers";
 
 const GNOMAD_API = "https://gnomad.broadinstitute.org/api";
 const GNOMAD_HEADERS = {
@@ -15,13 +17,6 @@ interface GnomadGeneConstraint {
   misZScore: number | null;
 }
 
-interface GnomadVariantFrequency {
-  population: string;
-  alleleFrequency: number;
-  alleleCount: number;
-  alleleNumber: number;
-  homozygoteCount: number;
-}
 
 interface GnomadGraphqlResponse<T> {
   data?: T;
@@ -30,15 +25,17 @@ interface GnomadGraphqlResponse<T> {
 
 async function gnomadGraphql<T>(
   query: string,
-  variables: Record<string, string>
+  variables: Record<string, string>,
+  noStore = false
 ): Promise<GnomadGraphqlResponse<T> | null> {
   const res = await fetch(GNOMAD_API, {
     method: "POST",
+    signal: AbortSignal.timeout(10000),
     headers: GNOMAD_HEADERS,
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 2592000 }, // 30 days
+    ...(noStore ? { cache: "no-store" as const } : { next: { revalidate: 2592000 } }), // 30 days for gene data
   });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`gnomAD returned HTTP ${res.status}.`);
   const payload = (await res.json()) as GnomadGraphqlResponse<T>;
   return payload;
 }
@@ -97,80 +94,69 @@ export async function fetchGnomadGeneConstraint(
 /**
  * Fetch variant population frequencies from gnomAD.
  */
-export async function fetchGnomadVariantFrequencies(
-  variantId: string
-): Promise<GnomadVariantFrequency[]> {
-  // variantId format: "1-55516888-G-A" (chrom-pos-ref-alt)
-  const parts = variantId.split("-");
-  if (parts.length !== 4) return [];
+export async function fetchGnomadVariantFrequencies(variantId: string): Promise<PopulationFrequency[]> {
+  return (await fetchGnomadVariantEvidence(variantId)).data ?? [];
+}
 
+/** Preserve absent records and failed GraphQL requests as distinct source states. */
+export async function fetchGnomadVariantEvidence(variantId: string): Promise<VariantSourceResult<PopulationFrequency[]>> {
+  const parsed = parseCoordinateVariant(variantId);
+  if (!parsed) return { status: "not_applicable", data: null, message: "gnomAD requires a GRCh38 chromosome-position-reference-alternate allele ID." };
+  const url = `https://gnomad.broadinstitute.org/variant/${parsed.id}?dataset=gnomad_r4`;
   const query = `
     query VariantFrequencies($variantId: String!) {
       variant(variantId: $variantId, dataset: gnomad_r4) {
         variant_id
-        genome {
-          populations {
-            id
-            ac
-            an
-            homozygote_count
-          }
-        }
-        exome {
-          populations {
-            id
-            ac
-            an
-            homozygote_count
-          }
-        }
+        genome { populations { id ac an homozygote_count } }
+        exome { populations { id ac an homozygote_count } }
       }
     }
   `;
-
+  type RawPopulation = { id?: unknown; ac?: unknown; an?: unknown; homozygote_count?: unknown };
   try {
     const payload = await gnomadGraphql<{
       variant?: {
-        exome?: { populations?: Array<{ id: string; ac: number; an: number; homozygote_count: number }> };
-        genome?: { populations?: Array<{ id: string; ac: number; an: number; homozygote_count: number }> };
-      };
-    }>(query, { variantId });
-    const variant = payload?.data?.variant;
-    if (!variant) return [];
-
-    // Prefer exome data, fall back to genome
-    const populations =
-      variant.exome?.populations ?? variant.genome?.populations ?? [];
-
-    const POPULATION_LABELS: Record<string, string> = {
-      afr: "African/African American",
-      amr: "Admixed American",
-      asj: "Ashkenazi Jewish",
-      eas: "East Asian",
-      fin: "European (Finnish)",
-      nfe: "European (non-Finnish)",
-      sas: "South Asian",
-      oth: "Other",
+        variant_id?: string;
+        exome?: { populations?: RawPopulation[] } | null;
+        genome?: { populations?: RawPopulation[] } | null;
+      } | null;
+    }>(query, { variantId: parsed.id }, true);
+    if (payload?.errors?.length) {
+      const message = payload.errors.map((error) => error.message ?? "GraphQL error").join("; ").slice(0, 300);
+      // gnomAD reports a missing dataset allele as a GraphQL error, not HTTP404.
+      if (/variant not found|not found in (?:the )?dataset/i.test(message)) {
+        return { status: "not_found", data: null, url, message: "This allele was not found in gnomAD v4.1. Its population frequency is unknown." };
+      }
+      throw new Error(`gnomAD: ${message}`);
+    }
+    if (!payload?.data || !("variant" in payload.data)) throw new Error("gnomAD returned an unreadable variant response.");
+    const variant = payload.data.variant;
+    if (variant === null) return { status: "not_found", data: null, url, message: "This allele was not found in gnomAD v4.1. Its population frequency is unknown." };
+    if (!variant || variant.variant_id !== parsed.id) throw new Error("gnomAD returned a mismatched variant record.");
+    const labels: Record<string, string> = {
+      afr: "African/African American", amr: "Admixed American", asj: "Ashkenazi Jewish", eas: "East Asian",
+      fin: "European (Finnish)", nfe: "European (non-Finnish)", sas: "South Asian", mid: "Middle Eastern",
+      ami: "Amish", remaining: "Remaining ancestry groups", oth: "Other",
     };
-
-    return populations
-      .filter(
-        (p: { id: string; ac: number; an: number }) =>
-          POPULATION_LABELS[p.id] && p.an > 0
-      )
-      .map((p: { id: string; ac: number; an: number; homozygote_count: number }) => ({
-        population: POPULATION_LABELS[p.id] ?? p.id,
-        alleleFrequency: p.an > 0 ? p.ac / p.an : 0,
-        alleleCount: p.ac,
-        alleleNumber: p.an,
-        homozygoteCount: p.homozygote_count ?? 0,
-      }));
+    const populationsFor = (populations: RawPopulation[] | undefined): PopulationFrequency[] => {
+      if (!Array.isArray(populations)) return [];
+      return populations.flatMap((population) => {
+        if (typeof population.id !== "string" || !labels[population.id]) return [];
+        const { ac, an, homozygote_count: hom } = population;
+        if (!Number.isSafeInteger(ac) || !Number.isSafeInteger(an) || Number(ac) < 0 || Number(an) <= 0 || Number(ac) > Number(an)) return [];
+        return [{ population: labels[population.id], alleleFrequency: Number(ac) / Number(an), alleleCount: Number(ac), alleleNumber: Number(an),
+          homozygoteCount: Number.isSafeInteger(hom) && Number(hom) >= 0 ? Number(hom) : null }];
+      });
+    };
+    const exomes = populationsFor(variant.exome?.populations);
+    const genomes = populationsFor(variant.genome?.populations);
+    // Do not let an empty exome array hide usable genome data, or add overlapping cohorts.
+    const data = exomes.length ? exomes : genomes;
+    const dataset = exomes.length ? "exomes" : "genomes";
+    if (!data.length) return { status: "unavailable", data: null, url, message: "The gnomAD record has no usable population allele counts. Frequency is unknown." };
+    return { status: "available", data, url, dataset, message: `gnomAD v4.1 ${dataset}; populations with measured allele numbers.` };
   } catch (error) {
-    console.error(
-      `gnomAD variant frequencies fetch failed for ${variantId}:`,
-      error
-    );
-    return [];
+    return { status: "unavailable", data: null, url, message: error instanceof Error && /timeout|abort/i.test(error.name) ? "gnomAD timed out. Retry to fetch population frequencies." : error instanceof Error ? error.message : "gnomAD could not be reached." };
   }
 }
 

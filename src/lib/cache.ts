@@ -29,24 +29,27 @@ const TTL = {
  */
 export async function getCachedGeneSummary(
   symbol: string,
-  composeFn: () => Promise<GeneSummary>
+  composeFn: () => Promise<GeneSummary>,
+  options: { refresh?: boolean } = {}
 ): Promise<GeneSummary> {
   const key = `gene:${symbol.toUpperCase()}:summary:v5`;
   const now = new Date();
 
   // Check cache
-  const cached = await db
+  const cached = options.refresh ? [] : await db
     .select()
     .from(geneSummaries)
     .where(eq(geneSummaries.key, key))
     .limit(1);
 
   if (cached.length > 0 && cached[0]!.expiresAt > now) {
-    return cached[0]!.data as GeneSummary;
+    const summary = cached[0]!.data as GeneSummary;
+    if (Object.keys(summary.sourceVersions ?? {}).length > 0) return summary;
   }
 
   // Cache miss — compose from sources
   const summary = await composeFn();
+  if (Object.keys(summary.sourceVersions).length === 0) return summary;
 
   // Store in cache
   const expiresAt = new Date(now.getTime() + TTL.gene);
@@ -79,22 +82,26 @@ export async function getCachedGeneSummary(
  */
 export async function getCachedVariantSummary(
   variantId: string,
-  composeFn: () => Promise<VariantSummary>
+  composeFn: () => Promise<VariantSummary>,
+  options: { coordinateId?: string; refresh?: boolean } = {}
 ): Promise<VariantSummary> {
-  const key = `variant:${variantId}:summary:v1`;
+  const key = `variant:${variantId}:${options.coordinateId ?? ""}:summary:v2`;
   const now = new Date();
 
-  const cached = await db
+  const cached = options.refresh ? [] : await db
     .select()
     .from(variantSummaries)
     .where(eq(variantSummaries.key, key))
     .limit(1);
 
   if (cached.length > 0 && cached[0]!.expiresAt > now) {
-    return cached[0]!.data as VariantSummary;
+    const summary = cached[0]!.data as VariantSummary;
+    if (summary.sourceStatus?.clinvar && summary.sourceStatus?.gnomad && !Object.values(summary.sourceStatus).some((source) => source.status === "unavailable")) return summary;
   }
 
   const summary = await composeFn();
+  // Do not persist outages as evidence that a variant has no classification/frequency.
+  if (!summary.sourceStatus || Object.values(summary.sourceStatus).some((source) => source.status === "unavailable")) return summary;
 
   const expiresAt = new Date(now.getTime() + TTL.variant);
 

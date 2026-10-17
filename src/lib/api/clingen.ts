@@ -18,6 +18,7 @@ export async function fetchClingenValidity(
   try {
     const url = `${CLINGEN_BASE}/genes/${encodeURIComponent(symbol.toUpperCase())}`;
     const res = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
       headers: { Accept: "application/json" },
       next: { revalidate: 1209600 }, // 14 days
     });
@@ -96,6 +97,7 @@ export async function fetchClingenDosage(
   try {
     const url = `${CLINGEN_BASE}/gene-dosage/${encodeURIComponent(symbol.toUpperCase())}`;
     const res = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
       headers: { Accept: "application/json" },
       next: { revalidate: 1209600 }, // 14 days
     });

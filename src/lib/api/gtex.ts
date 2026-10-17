@@ -16,9 +16,11 @@ export async function fetchGtexExpression(
   topN = 10
 ): Promise<GTExExpression[]> {
   try {
-    const gencodeId = await resolveGencodeId(symbol);
+    // One shared deadline also bounds the version fallback loop as a whole.
+    const signal = AbortSignal.timeout(10000);
+    const gencodeId = await resolveGencodeId(symbol, signal);
     if (!gencodeId) return [];
-    const expressions = await fetchExpressionWithVersionFallback(gencodeId);
+    const expressions = await fetchExpressionWithVersionFallback(gencodeId, signal);
 
     if (!Array.isArray(expressions) || expressions.length === 0) return [];
 
@@ -49,24 +51,26 @@ export async function fetchGtexExpression(
   }
 }
 
-async function resolveGencodeId(symbol: string): Promise<string | null> {
+async function resolveGencodeId(symbol: string, signal: AbortSignal): Promise<string | null> {
   const upperSymbol = symbol.toUpperCase();
 
   // Prefer exact-symbol match from reference/gene (more reliable than geneSearch for symbols like TTN vs TTN-AS1).
-  const exact = await fetchReferenceGeneId(upperSymbol);
+  const exact = await fetchReferenceGeneId(upperSymbol, signal);
   if (exact) return exact;
 
   // Fallback: search endpoint, but still require exact geneSymbol match before accepting.
-  const searched = await fetchGeneSearchId(upperSymbol);
+  signal.throwIfAborted();
+  const searched = await fetchGeneSearchId(upperSymbol, signal);
   if (searched) return searched;
 
   return null;
 }
 
-async function fetchReferenceGeneId(symbol: string): Promise<string | null> {
+async function fetchReferenceGeneId(symbol: string, signal: AbortSignal): Promise<string | null> {
   try {
     const url = `${GTEX_API}/reference/gene?geneId=${encodeURIComponent(symbol)}&genomeBuild=GRCh38%2Fhg38&page=0&itemsPerPage=25`;
     const res = await fetch(url, {
+      signal,
       next: { revalidate: 2592000 }, // 30 days
     });
     if (!res.ok) return null;
@@ -87,10 +91,11 @@ async function fetchReferenceGeneId(symbol: string): Promise<string | null> {
   }
 }
 
-async function fetchGeneSearchId(symbol: string): Promise<string | null> {
+async function fetchGeneSearchId(symbol: string, signal: AbortSignal): Promise<string | null> {
   try {
     const url = `${GTEX_API}/reference/geneSearch?geneId=${encodeURIComponent(symbol)}&genomeBuild=GRCh38%2Fhg38&page=0&itemsPerPage=25`;
     const res = await fetch(url, {
+      signal,
       next: { revalidate: 2592000 }, // 30 days
     });
     if (!res.ok) return null;
@@ -112,12 +117,14 @@ async function fetchGeneSearchId(symbol: string): Promise<string | null> {
 }
 
 async function fetchExpressionWithVersionFallback(
-  gencodeId: string
+  gencodeId: string,
+  signal: AbortSignal
 ): Promise<Array<{ tissueSiteDetailId: string; median: number }>> {
   const candidates = buildGencodeCandidates(gencodeId);
 
   for (const candidate of candidates) {
-    const data = await fetchMedianExpression(candidate);
+    signal.throwIfAborted();
+    const data = await fetchMedianExpression(candidate, signal);
     if (data.length > 0) {
       return data;
     }
@@ -150,10 +157,12 @@ function buildGencodeCandidates(gencodeId: string): string[] {
 }
 
 async function fetchMedianExpression(
-  gencodeId: string
+  gencodeId: string,
+  signal: AbortSignal
 ): Promise<Array<{ tissueSiteDetailId: string; median: number }>> {
   const url = `${GTEX_API}/expression/medianGeneExpression?gencodeId=${encodeURIComponent(gencodeId)}&datasetId=gtex_v10&page=0&itemsPerPage=250`;
   const res = await fetch(url, {
+    signal,
     next: { revalidate: 2592000 }, // 30 days
   });
 

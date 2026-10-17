@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SearchCommand } from "@/components/shared/search-command";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
 
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      if (pathname === "/") return;
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setSearchOpen((open) => !open);
@@ -18,7 +21,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, []);
+  }, [pathname]);
+
+  if (pathname === "/") return <main>{children}</main>;
 
   return (
     <>
